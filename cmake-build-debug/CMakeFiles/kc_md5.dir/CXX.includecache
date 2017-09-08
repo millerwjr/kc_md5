@@ -11,7 +11,11 @@ kc_md5.h
 D:/Google Drive/Projects/Programs/GitHub/kc_md5/kc_md5.h
 cstdio
 -
+fstream
+-
 cstring
+-
+sstream
 -
 
 D:/Google Drive/Projects/Programs/GitHub/kc_md5/kc_md5.h
@@ -19,8 +23,8 @@ iostream
 -
 
 D:/Google Drive/Projects/Programs/GitHub/kc_md5/main.cpp
-iostream
--
 kc_md5.h
 D:/Google Drive/Projects/Programs/GitHub/kc_md5/kc_md5.h
+fstream
+-
 

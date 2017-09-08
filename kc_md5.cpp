@@ -9,28 +9,9 @@
 
 #include "kc_md5.h"
 #include <cstdio>
+#include <fstream>
 #include <cstring>
-
-
-// Constants for MD5Transform routine
-#define S11 7
-#define S12 12
-#define S13 17
-#define S14 22
-#define S21 5
-#define S22 9
-#define S23 14
-#define S24 20
-#define S31 4
-#define S32 11
-#define S33 16
-#define S34 23
-#define S41 6
-#define S42 10
-#define S43 15
-#define S44 21
-
-
+#include <sstream>
 
 // F, G, H and I are basic MD5 functions.
 inline kc::md5::uint4 kc::md5::F(uint4 x, uint4 y, uint4 z) {
@@ -73,27 +54,42 @@ inline void kc::md5::II(uint4 &a, uint4 b, uint4 c, uint4 d, uint4 x, uint4 s, u
 
 
 // CTORs
-kc::md5::md5()
+kc::md5::md5(const std::string &text)
 {
-    init();
+    this->init();
+    this->update(text.c_str(), text.length());
+    this->finalize();
 }
 
 
-
-kc::md5::md5(const std::string &text)
+// Warning - file input hashes the contents ONLY (no filename inclusion)
+kc::md5::md5(const std::ifstream &infile)
 {
-    init();
-    update(text.c_str(), text.length());
-    finalize();
+    this->init();
+    std::stringstream ss;
+    ss << infile.rdbuf();
+    this->update(ss.str().c_str(), ss.str().length());
+    this->finalize();
 }
 
 
 
 void kc::md5::update(const std::string &text)
 {
-    init();
-    update(text.c_str(), text.length());
-    finalize();
+    this->init();
+    this->update(text.c_str(), text.length());
+    this->finalize();
+}
+
+
+// Warning - file input hashes the contents ONLY (no filename inclusion)
+void kc::md5::update(const std::ifstream &infile)
+{
+    this->init();
+    std::stringstream ss;
+    ss << infile.rdbuf();
+    this->update(ss.str().c_str(), ss.str().length());
+    this->finalize();
 }
 
 

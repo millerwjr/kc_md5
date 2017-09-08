@@ -12,15 +12,37 @@
 
 #include <iostream>
 
+
+
 namespace kc {
+
+// Constants for MD5Transform routine
+#define S11 7
+#define S12 12
+#define S13 17
+#define S14 22
+#define S21 5
+#define S22 9
+#define S23 14
+#define S24 20
+#define S31 4
+#define S32 11
+#define S33 16
+#define S34 23
+#define S41 6
+#define S42 10
+#define S43 15
+#define S44 21
+
     class md5 {
     public:
         typedef unsigned int size_type;
 
-        md5();
         md5(const std::string &text);
+        md5(const std::ifstream &infile);
         std::string hexdigest() const;
         void update(const std::string &text);
+        void update(const std::ifstream &infile);
 
     private:
         void init();
@@ -36,7 +58,7 @@ namespace kc {
         static void encode(uint1 output[], const uint4 input[], size_type len);
         void update(const unsigned char *buf, size_type length);
         void update(const char *buf, size_type length);
-        md5 &finalize();
+        kc::md5 &finalize();
 
         bool finalized;
         uint1 buffer[blocksize];
