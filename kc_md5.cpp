@@ -1,17 +1,23 @@
 //
 // Copyright 2017 Wyatt Miller
+// My goal with this code was to streamline user input - a simple .hash() function is called for everything
 //
-// THIS CODE BORROWS SIGNIFICANTLY FROM:
+// Please attribute accordingly.
+//
+// THIS CODE BORROWS SIGNIFICANTLY FROM THE FOLLOWING:
 // http://www.zedwood.com/article/cpp-md5-function
 // https://bobobobo.wordpress.com/2010/10/17/md5-c-implementation/
 //
-// Please attribute accordingly.
+
+
 
 #include "kc_md5.h"
 #include <cstdio>
 #include <fstream>
 #include <cstring>
 #include <sstream>
+
+
 
 // F, G, H and I are basic MD5 functions.
 inline kc::md5::uint4 kc::md5::F(uint4 x, uint4 y, uint4 z) {
@@ -30,12 +36,13 @@ inline kc::md5::uint4 kc::md5::I(uint4 x, uint4 y, uint4 z) {
     return y ^ (x | ~z);
 }
 
-// Rotate_left rotates x left n bits.
+// rotate_left rotates x left n bits.
 inline kc::md5::uint4 kc::md5::rotate_left(uint4 x, int n) {
     return (x << n) | (x >> (32-n));
 }
 
-// FF, GG, HH, and II transformations for rounds 1, 2, 3, and 4. Rotation is separate from addition to prevent recomputation.
+// FF, GG, HH, and II transformations for rounds 1, 2, 3, and 4.
+// Rotation is separate from addition to prevent recomputation.
 inline void kc::md5::FF(uint4 &a, uint4 b, uint4 c, uint4 d, uint4 x, uint4 s, uint4 ac) {
     a = rotate_left(a+ F(b,c,d) + x + ac, s) + b;
 }
@@ -53,55 +60,16 @@ inline void kc::md5::II(uint4 &a, uint4 b, uint4 c, uint4 d, uint4 x, uint4 s, u
 }
 
 
-// CTORs
-kc::md5::md5(const std::string &text)
+
+
+
+kc::md5::md5()
 {
-    this->init();
-    this->update(text.c_str(), text.length());
-    this->finalize();
-}
-
-
-// Warning - file input hashes the contents ONLY (no filename inclusion)
-kc::md5::md5(const std::ifstream &infile)
-{
-    this->init();
-    std::stringstream ss;
-    ss << infile.rdbuf();
-    this->update(ss.str().c_str(), ss.str().length());
-    this->finalize();
-}
-
-
-
-void kc::md5::update(const std::string &text)
-{
-    this->init();
-    this->update(text.c_str(), text.length());
-    this->finalize();
-}
-
-
-// Warning - file input hashes the contents ONLY (no filename inclusion)
-void kc::md5::update(const std::ifstream &infile)
-{
-    this->init();
-    std::stringstream ss;
-    ss << infile.rdbuf();
-    this->update(ss.str().c_str(), ss.str().length());
-    this->finalize();
-}
-
-
-
-void kc::md5::init()
-{
+    // init
     finalized=false;
-
     count[0] = 0;
     count[1] = 0;
-
-    // Load magic initialization constants.
+    // load magic initialization constants.
     state[0] = 0x67452301;
     state[1] = 0xefcdab89;
     state[2] = 0x98badcfe;
@@ -110,17 +78,85 @@ void kc::md5::init()
 
 
 
-// Decodes input (unsigned char) into output (uint4). Assumes len is a multiple of 4.
-void kc::md5::decode(uint4 output[], const uint1 input[], size_type len)
-{
-    for (unsigned int i = 0, j = 0; j < len; i++, j += 4)
-        output[i] = ((uint4)input[j]) | (((uint4)input[j+1]) << 8) |
-                    (((uint4)input[j+2]) << 16) | (((uint4)input[j+3]) << 24);
+kc::md5::md5(const std::string &text) {
+
+    // Init
+    finalized = false;
+    count[0] = 0;
+    count[1] = 0;
+    // Load magic initialization constants.
+    state[0] = 0x67452301;
+    state[1] = 0xefcdab89;
+    state[2] = 0x98badcfe;
+    state[3] = 0x10325476;
+
+    update(text.c_str(), text.length());
+
+    // MD5 finalization. Ends an MD5 message-digest operation, writing the
+    // the message digest and zeroizing the context.
+    static unsigned char padding[64] = {
+            0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+    };
+
+    if (!finalized) {
+        // Save number of bits
+        unsigned char bits[8];
+        encode(bits, count, 8);
+
+        // pad out to 56 mod 64.
+        size_type index = count[0] / 8 % 64;
+        size_type padLen = (index < 56) ? (56 - index) : (120 - index);
+        update(padding, padLen);
+
+        // Append length (before padding)
+        update(bits, 8);
+
+        // Store state in digest
+        encode(digest, state, 16);
+
+        // Zeroize sensitive information.
+        memset(buffer, 0, sizeof buffer);
+        memset(count, 0, sizeof count);
+
+        finalized = true;
+    }
 }
 
 
 
-// Encodes input (uint4) into output (unsigned char). Assumes length is a multiple of 4.
+
+
+std::string kc::md5::hash(const std::string &text) const {
+    kc::md5 md5_wrapper = kc::md5(text);
+    return md5_wrapper.hexdigest();
+}
+
+
+
+std::string kc::md5::hash(const std::ifstream &infile) const {
+    std::stringstream ss;
+    ss << infile.rdbuf();
+    kc::md5 md5_wrapper = kc::md5(ss.str());
+    return md5_wrapper.hexdigest();
+}
+
+
+
+
+
+// decodes input (unsigned char) into output (uint4). Assumes len is a multiple of 4.
+void kc::md5::decode(uint4 output[], const uint1 input[], size_type len)
+{
+    for (unsigned int i = 0, j = 0; j < len; i++, j += 4)
+        output[i] = ((uint4)input[j]) | (((uint4)input[j+1]) << 8) | (((uint4)input[j+2]) << 16) | (((uint4)input[j+3]) << 24);
+}
+
+
+
+// encodes input (uint4) into output (unsigned char). Assumes len is
+// a multiple of 4.
 void kc::md5::encode(uint1 output[], const uint4 input[], size_type len)
 {
     for (size_type i = 0, j = 0; j < len; i++, j += 4) {
@@ -133,7 +169,9 @@ void kc::md5::encode(uint1 output[], const uint4 input[], size_type len)
 
 
 
-// Apply md5 algo on a block
+
+
+// apply MD5 algo on a block
 void kc::md5::transform(const uint1 block[blocksize])
 {
     uint4 a = state[0], b = state[1], c = state[2], d = state[3], x[16];
@@ -222,10 +260,11 @@ void kc::md5::transform(const uint1 block[blocksize])
 
 
 
-// MD5 block update operation. Continues an MD5 message-digest operation, processing another message block
+// MD5 block update operation. Continues an MD5 message-digest
+// operation, processing another message block
 void kc::md5::update(const unsigned char input[], size_type length)
 {
-    // Compute number of bytes mod 64
+    // compute number of bytes mod 64
     size_type index = count[0] / 8 % blocksize;
 
     // Update number of bits
@@ -233,19 +272,19 @@ void kc::md5::update(const unsigned char input[], size_type length)
         count[1]++;
     count[1] += (length >> 29);
 
-    // Number of bytes we need to fill in buffer
+    // number of bytes we need to fill in buffer
     size_type firstpart = 64 - index;
 
     size_type i;
 
-    // Transform as many times as possible.
+    // transform as many times as possible.
     if (length >= firstpart)
     {
-        // Fill buffer first, transform
+        // fill buffer first, transform
         memcpy(&buffer[index], input, firstpart);
         transform(buffer);
 
-        // Transform chunks of blocksize (64 bytes)
+        // transform chunks of blocksize (64 bytes)
         for (i = firstpart; i + blocksize <= length; i += blocksize)
             transform(&input[i]);
 
@@ -254,13 +293,13 @@ void kc::md5::update(const unsigned char input[], size_type length)
     else
         i = 0;
 
-    // Buffer remaining input
+    // buffer remaining input
     memcpy(&buffer[index], &input[i], length-i);
 }
 
 
 
-// For convenience provide a verson with signed char
+// for convenience provide a verson with signed char
 void kc::md5::update(const char input[], size_type length)
 {
     update((const unsigned char*)input, length);
@@ -268,44 +307,7 @@ void kc::md5::update(const char input[], size_type length)
 
 
 
-// MD5 finalization. Ends an MD5 message-digest operation, writing the message digest and zeroizing the context.
-kc::md5& kc::md5::finalize()
-{
-    static unsigned char padding[64] = {
-            0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-    };
-
-    if (!finalized) {
-        // Save number of bits
-        unsigned char bits[8];
-        encode(bits, count, 8);
-
-        // Pad out to 56 mod 64.
-        size_type index = count[0] / 8 % 64;
-        size_type padLen = (index < 56) ? (56 - index) : (120 - index);
-        update(padding, padLen);
-
-        // Append length (before padding)
-        update(bits, 8);
-
-        // Store state in digest
-        encode(digest, state, 16);
-
-        // Zeroize sensitive information.
-        memset(buffer, 0, sizeof buffer);
-        memset(count, 0, sizeof count);
-
-        finalized=true;
-    }
-
-    return *this;
-}
-
-
-
-// Return hex representation of digest as string
+// return hex representation of digest as string
 std::string kc::md5::hexdigest() const
 {
     if (!finalized)

@@ -6,17 +6,15 @@
 // https://bobobobo.wordpress.com/2010/10/17/md5-c-implementation/
 //
 // Please attribute accordingly.
+//
+// My goal with this code was to streamline user input - a simple .hash() function is called for everything
 
 #ifndef KC_MD5_H
 #define KC_MD5_H
 
 #include <iostream>
 
-
-
-namespace kc {
-
-// Constants for MD5Transform routine
+// Constants for MD5Transform routine.
 #define S11 7
 #define S12 12
 #define S13 17
@@ -34,37 +32,36 @@ namespace kc {
 #define S43 15
 #define S44 21
 
-    class md5 {
-    public:
-        typedef unsigned int size_type;
+namespace kc {
 
-        md5(const std::string &text);
-        md5(const std::ifstream &infile);
-        std::string hexdigest() const;
-        void update(const std::string &text);
-        void update(const std::ifstream &infile);
+    class md5
+    {
+    public:
+        typedef unsigned int size_type; // must be 32bit
+
+        md5();
+        std::string hash(const std::string &text) const;
+        std::string hash(const std::ifstream &infile) const;
 
     private:
-        void init();
+        typedef unsigned char uint1; //  8bit
+        typedef unsigned int uint4;  // 32bit
+        enum {blocksize = 64}; // VC6 won't eat a const static int here
 
-        typedef unsigned char uint1;
-        typedef unsigned int uint4;
-        enum {
-            blocksize = 64
-        };
+        md5(const std::string& text);
+        void update(const unsigned char *buf, size_type length);
+        void update(const char *buf, size_type length);
 
+        std::string hexdigest() const;
         void transform(const uint1 block[blocksize]);
         static void decode(uint4 output[], const uint1 input[], size_type len);
         static void encode(uint1 output[], const uint4 input[], size_type len);
-        void update(const unsigned char *buf, size_type length);
-        void update(const char *buf, size_type length);
-        kc::md5 &finalize();
 
         bool finalized;
-        uint1 buffer[blocksize];
-        uint4 count[2];
-        uint4 state[4];
-        uint1 digest[16];
+        uint1 buffer[blocksize]; // bytes that didn't fit in last 64 byte chunk
+        uint4 count[2];   // 64bit counter for number of bits (lo, hi)
+        uint4 state[4];   // digest so far
+        uint1 digest[16]; // the result
 
         // low level logic operations
         static inline uint4 F(uint4 x, uint4 y, uint4 z);
@@ -77,6 +74,7 @@ namespace kc {
         static inline void HH(uint4 &a, uint4 b, uint4 c, uint4 d, uint4 x, uint4 s, uint4 ac);
         static inline void II(uint4 &a, uint4 b, uint4 c, uint4 d, uint4 x, uint4 s, uint4 ac);
     };
+
 
 }
 #endif //KC_MD5_H
